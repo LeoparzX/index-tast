@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แบบทดสอบ: การถอดรหัสและการแปลรหัสของ mRNA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1220;
+  --panel:#121b2e;
+  --panel-2:#0e1626;
+  --border:#232e48;
+  --border-strong:#3a4a72;
+  --text:#edeff6;
+  --text-2:#93a0be;
+  --text-3:#5d6a8c;
+  --accent:#f2b705;
+  --accent-ink:#3a2c02;
+  --success:#35c48c;
+  --success-bg:#122b23;
+  --success-border:#1f6b4f;
+  --danger:#e2574c;
+  --danger-bg:#2a1613;
+  --danger-border:#8a3129;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'IBM Plex Sans Thai',sans-serif;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.wrap{max-width:600px;margin:0 auto;padding:48px 20px 64px;}
+.codon-strip{
+  color:var(--text-3);
+  font-size:12px;
+  letter-spacing:0.06em;
+  margin:0 0 28px;
+  word-break:break-all;
+}
+h1{
+  font-size:24px;
+  font-weight:500;
+  margin:0 0 12px;
+  line-height:1.4;
+}
+.sub{
+  color:var(--text-2);
+  font-size:15px;
+  margin:0 0 20px;
+  max-width:52ch;
+}
+.meta-row{
+  display:flex;
+  gap:20px;
+  margin:0 0 28px;
+  font-size:13px;
+  color:var(--text-2);
+}
+.meta-row span{display:flex;align-items:center;gap:6px;}
+.meta-row .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex:none;}
+button{
+  font-family:'IBM Plex Sans Thai',sans-serif;
+  cursor:pointer;
+}
+.btn-primary{
+  background:var(--accent);
+  color:var(--accent-ink);
+  border:none;
+  border-radius:6px;
+  padding:13px 22px;
+  font-size:15px;
+  font-weight:500;
+  transition:opacity .15s;
+}
+.btn-primary:hover{opacity:0.88;}
+.btn-primary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+.btn-ghost{
+  background:transparent;
+  color:var(--text-2);
+  border:0.5px solid var(--border-strong);
+  border-radius:6px;
+  padding:12px 20px;
+  font-size:14px;
+  width:100%;
+}
+.btn-ghost:hover{border-color:var(--text-2);color:var(--text);}
+.btn-ghost:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+#cover-area{display:block;}
+#quiz-area{display:none;}
+#result-area{display:none;}
+
+.progress-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:10px;
+}
+.progress-label{font-size:13px;color:var(--text-2);}
+.score-label{font-size:13px;color:var(--text-2);}
+.score-label b{color:var(--accent);font-weight:500;}
+.progress-track{
+  height:3px;
+  background:var(--panel);
+  border-radius:3px;
+  overflow:hidden;
+  margin-bottom:32px;
+}
+.progress-fill{
+  height:100%;
+  background:var(--accent);
+  transition:width .25s ease;
+}
+
+.question-idx{
+  font-size:13px;
+  color:var(--text-3);
+  margin:0 0 8px;
+}
+.question-text{
+  font-size:17px;
+  font-weight:500;
+  margin:0 0 20px;
+  line-height:1.6;
+}
+.opt-btn{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  width:100%;
+  text-align:left;
+  background:var(--panel);
+  border:0.5px solid var(--border);
+  border-radius:6px;
+  padding:13px 14px;
+  margin-bottom:8px;
+  color:var(--text);
+  font-size:14.5px;
+  line-height:1.55;
+}
+.opt-btn:not(:disabled):hover{border-color:var(--border-strong);background:var(--panel-2);}
+.opt-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.opt-btn:disabled{cursor:default;}
+.opt-badge{
+  flex:none;
+  width:22px;
+  height:22px;
+  border-radius:4px;
+  background:var(--panel-2);
+  border:0.5px solid var(--border-strong);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  color:var(--text-2);
+}
+.opt-btn.correct{background:var(--success-bg);border-color:var(--success-border);}
+.opt-btn.correct .opt-badge{background:var(--success-border);color:var(--success-bg);border-color:var(--success-border);}
+.opt-btn.wrong{background:var(--danger-bg);border-color:var(--danger-border);}
+.opt-btn.wrong .opt-badge{background:var(--danger-border);color:var(--danger-bg);border-color:var(--danger-border);}
+
+.feedback{
+  font-size:13.5px;
+  line-height:1.6;
+  padding:12px 14px;
+  border-radius:6px;
+  margin:6px 0 0;
+  display:none;
+}
+.feedback.correct{background:var(--success-bg);color:var(--success);border:0.5px solid var(--success-border);}
+.feedback.wrong{background:var(--danger-bg);color:var(--danger);border:0.5px solid var(--danger-border);}
+.feedback b{font-weight:600;}
+
+.next-row{margin-top:16px;display:none;}
+.next-btn{
+  background:transparent;
+  color:var(--text);
+  border:0.5px solid var(--border-strong);
+  border-radius:6px;
+  padding:11px 18px;
+  font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.next-btn:hover{background:var(--panel);}
+.next-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+.result-card{
+  background:var(--panel);
+  border:0.5px solid var(--border);
+  border-radius:10px;
+  padding:32px 24px;
+  text-align:center;
+}
+.result-label{font-size:13px;color:var(--text-2);margin:0 0 6px;}
+.result-score{font-size:44px;font-weight:500;margin:0 0 8px;}
+.result-msg{font-size:14.5px;color:var(--text-2);margin:0;max-width:40ch;margin-left:auto;margin-right:auto;}
+.result-actions{display:flex;flex-direction:column;gap:10px;margin-top:24px;}
+.copy-note{font-size:12.5px;color:var(--text-3);text-align:center;margin-top:10px;min-height:16px;}
+
+footer{
+  margin-top:40px;
+  font-size:12.5px;
+  color:var(--text-3);
+  border-top:0.5px solid var(--border);
+  padding-top:18px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="codon-strip mono">5'-AUG-CGU-UAC-GGA-CCU-GAA-UGA-AAU-CUG-UAC-3'</p>
+
+  <div id="cover-area">
+    <h1>การถอดรหัสและการแปลรหัสของ mRNA</h1>
+    <p class="sub">โจทย์ระดับยาก 20 ข้อ ครอบคลุมตั้งแต่โปรโมเตอร์และ RNA polymerase ไปจนถึงการตัดต่อ intron และการยุติการแปลรหัส เฉลยพร้อมคำอธิบายทันทีทุกข้อ</p>
+    <div class="meta-row">
+      <span><span class="dot"></span>20 ข้อ</span>
+      <span><span class="dot"></span>เฉลยทันที</span>
+      <span><span class="dot"></span>สุ่มตำแหน่งคำตอบ</span>
+    </div>
+    <button class="btn-primary" id="start-btn">เริ่มทำข้อสอบ</button>
+  </div>
+
+  <div id="quiz-area">
+    <div class="progress-row">
+      <span class="progress-label mono" id="progress-label">ข้อที่ 01 / 20</span>
+      <span class="score-label">คะแนน <b id="score-num">0</b></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:5%;"></div></div>
+
+    <p class="question-text" id="question-text"></p>
+    <div id="opts"></div>
+
+    <p class="feedback" id="feedback"></p>
+
+    <div class="next-row" id="next-row">
+      <button class="next-btn" id="next-btn">
+        ข้อถัดไป
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="result-area">
+    <div class="result-card">
+      <p class="result-label">คะแนนรวม</p>
+      <p class="result-score mono" id="result-score">0 / 20</p>
+      <p class="result-msg" id="result-msg"></p>
+    </div>
+    <div class="result-actions">
+      <button class="btn-ghost" id="retry-btn">ทำใหม่อีกครั้ง</button>
+      <button class="btn-ghost" id="copy-btn">คัดลอกลิงก์เพื่อแชร์ให้เพื่อนทำ</button>
+    </div>
+    <p class="copy-note" id="copy-note"></p>
+  </div>
+
+  <footer>ทำข้อสอบชุดนี้ร่วมกับเพื่อนได้ — ส่งลิงก์หรือไฟล์นี้ต่อได้เลย แต่ละคนที่เปิดจะเริ่มนับคะแนนของตัวเอง</footer>
+</div>
+
+<script>
+const questions = [
+  {q:"เอนไซม์ใดในยูคาริโอตทำหน้าที่สังเคราะห์ pre-mRNA?",
+   options:["RNA polymerase I","Primase","RNA polymerase II","RNA polymerase III"],
+   correct:2,
+   explain:"RNA polymerase II สังเคราะห์ pre-mRNA ซึ่งต่อมาจะถูกตัดต่อ (splicing) ติด cap และ poly-A tail"},
+  {q:"ลำดับ TATAAT ในโปรโมเตอร์ของโพรคาริโอตเรียกว่าอะไร และอยู่ตำแหน่งใด?",
+   options:["Pribnow box ตำแหน่ง -10","Terminator ตำแหน่ง +1","CAAT box ตำแหน่ง -25","-35 box ตำแหน่ง -35"],
+   correct:0,
+   explain:"เรียกว่า Pribnow box อยู่ที่ตำแหน่งประมาณ -10 จากจุดเริ่มถอดรหัส ช่วยให้ RNA polymerase จับและคลายเกลียว DNA"},
+  {q:"Sigma factor (σ) มีบทบาทสำคัญอย่างไรในการถอดรหัสของแบคทีเรีย?",
+   options:["เร่งปฏิกิริยาสร้างพันธะฟอสโฟไดเอสเทอร์","เติม poly-A tail","ตัด intron ออก","ช่วยให้ core enzyme จดจำโปรโมเตอร์ได้จำเพาะ"],
+   correct:3,
+   explain:"σ factor รวมกับ core enzyme เป็น holoenzyme ทำให้จดจำลำดับโปรโมเตอร์ได้จำเพาะ เมื่อเริ่มถอดรหัสแล้ว σ จะหลุดออกไป"},
+  {q:"กระบวนการใดเกิดกับ mRNA เฉพาะในยูคาริโอต แต่ไม่เกิดในโพรคาริโอต?",
+   options:["การจับคู่ codon-anticodon","การติด 5' cap เติม poly-A tail และ splicing","การสร้างพันธะเปปไทด์","การใช้ START codon AUG"],
+   correct:1,
+   explain:"โพรคาริโอตไม่มีนิวเคลียสและไม่มี intron ส่วนใหญ่ จึงไม่ต้อง splicing หรือดัดแปลงปลาย mRNA แบบยูคาริโอต"},
+  {q:"Wobble hypothesis อธิบายเรื่องใด?",
+   options:["tRNA หนึ่งชนิดจับกรดอะมิโนได้หลายชนิด","ไรโบโซมเลื่อนแบบสุ่มบน mRNA","Stop codon เปลี่ยนตำแหน่งได้","เบสตำแหน่งที่ 3 ของ codon จับคู่กับ anticodon แบบไม่เคร่งครัด"],
+   correct:3,
+   explain:"เบสตำแหน่งที่ 3 (3' ของ codon / 5' ของ anticodon) จับคู่แบบยืดหยุ่นได้ ทำให้ tRNA หนึ่งชนิดอ่านได้หลาย codon ที่มีความหมายเดียวกัน"},
+  {q:"ลำดับใดในยูคาริโอตทำหน้าที่คล้าย Shine-Dalgarno sequence ในการช่วยกำหนดตำแหน่งเริ่มแปลรหัส?",
+   options:["Kozak sequence","Enhancer","TATA box","Poly-A signal (AAUAAA)"],
+   correct:0,
+   explain:"Kozak sequence (เช่น gccRccATGG) อยู่รอบ AUG ช่วยให้ไรโบโซมยูคาริโอตระบุตำแหน่งเริ่มแปลรหัสที่ถูกต้อง"},
+  {q:"การแทรก (insertion) นิวคลีโอไทด์ 1 ตัวในบริเวณเข้ารหัสโปรตีน จะก่อผลแบบใด?",
+   options:["Silent mutation","ไม่มีผลเพราะเป็น intron","Frameshift mutation","Missense mutation เฉพาะจุด"],
+   correct:2,
+   explain:"การแทรกหรือลบนิวคลีโอไทด์ที่ไม่ใช่จำนวนเท่าของ 3 จะเลื่อนกรอบการอ่าน (reading frame) ทำให้ลำดับกรดอะมิโนหลังจุดนั้นเปลี่ยนไปทั้งหมด"},
+  {q:"Release factor ในการยุติการแปลรหัสทำหน้าที่จดจำสิ่งใดที่ A site?",
+   options:["Start codon AUG","Stop codon (UAA UAG UGA)","Poly-A tail","Shine-Dalgarno sequence"],
+   correct:1,
+   explain:"เมื่อ stop codon เข้าสู่ A site release factor จะจับแทน tRNA และกระตุ้นให้ปลดปล่อยสายพอลิเปปไทด์"},
+  {q:"เอนไซม์ aminoacyl-tRNA synthetase มีความจำเพาะต่อสิ่งใด?",
+   options:["mRNA แต่ละชนิด","ไรโบโซม subunit","RNA polymerase","กรดอะมิโนและ tRNA ที่สอดคล้องกัน"],
+   correct:3,
+   explain:"เอนไซม์นี้จำเพาะต่อคู่กรดอะมิโน-tRNA แต่ละคู่ เป็นตัวเชื่อมความถูกต้องระหว่างรหัสพันธุกรรมกับกรดอะมิโน"},
+  {q:"Nonsense-mediated decay (NMD) คือกลไกใด?",
+   options:["กลไกเฝ้าระวังที่ทำลาย mRNA ซึ่งมี premature stop codon","การเติม poly-A tail ผิดปกติ","การตัดต่อ intron แบบพิเศษ","กระบวนการที่เกิดเฉพาะในไมโทคอนเดรีย"],
+   correct:0,
+   explain:"NMD เป็นระบบตรวจสอบคุณภาพ mRNA ที่ตรวจพบ stop codon ก่อนกำหนด แล้วย่อยสลาย mRNA นั้นเพื่อป้องกันโปรตีนผิดปกติ"},
+  {q:"ยา Streptomycin ยับยั้งการแปลรหัสของแบคทีเรียด้วยกลไกใด?",
+   options:["ยับยั้ง RNA polymerase","ยับยั้งการเติม poly-A","จับกับ 30S subunit ทำให้อ่าน codon ผิดพลาด","ยับยั้ง topoisomerase"],
+   correct:2,
+   explain:"Streptomycin จับกับ 30S subunit ของไรโบโซมแบคทีเรีย ทำให้การอ่าน codon ผิดพลาด (misreading) และรบกวนการเริ่มแปลรหัส"},
+  {q:"TBP (TATA-binding protein) เป็นหน่วยย่อยของ general transcription factor ใดที่จับกับ TATA box?",
+   options:["TFIIH","TFIID","Mediator complex","RNA polymerase I"],
+   correct:1,
+   explain:"TBP เป็นหน่วยย่อยของ TFIID ซึ่งเป็น general transcription factor ตัวแรกที่จับ TATA box เพื่อเริ่มประกอบ pre-initiation complex"},
+  {q:"การฟอสโฟรีเลตที่ Serine 5 ของ CTD (C-terminal domain) ของ RNA polymerase II สัมพันธ์กับขั้นตอนใด?",
+   options:["การติด 5' cap","การยืด (elongation)","การ polyadenylation","การ terminate การถอดรหัส"],
+   correct:0,
+   explain:"Ser5-P บน CTD เกิดขึ้นช่วงเริ่มถอดรหัสและดึง capping enzyme เข้ามาติด 5' cap ส่วน Ser2-P สัมพันธ์กับช่วง elongation และ 3' processing"},
+  {q:"โครงสร้าง 5' cap ของ mRNA ยูคาริโอตประกอบด้วยอะไร?",
+   options:["Adenine หลายตัวต่อกัน","กลุ่มฟอสเฟตเดี่ยวที่ปลาย 3'","นิวคลีโอไทด์ Uracil ที่ดัดแปลง","7-methylguanosine เชื่อมด้วยพันธะ 5'-5' triphosphate"],
+   correct:3,
+   explain:"5' cap คือ 7-methylguanosine ที่เชื่อมกับนิวคลีโอไทด์แรกของ mRNA ด้วยพันธะ 5'-5' triphosphate ช่วยป้องกันการย่อยสลายและช่วยในการเริ่มแปลรหัส"},
+  {q:"สัญญาณ AAUAAA (poly-A signal) บน pre-mRNA มีหน้าที่อย่างไร?",
+   options:["เป็นตำแหน่งเริ่มถอดรหัส","เป็นตำแหน่งจับของไรโบโซม","กำหนดตำแหน่งตัดปลาย 3' และกระตุ้นการเติม poly-A tail","กำหนดตำแหน่ง splice site"],
+   correct:2,
+   explain:"ลำดับ AAUAAA เป็นสัญญาณให้เอนไซม์ตัดสาย RNA แล้วเติมหาง poly-A ที่ปลาย 3' ช่วยเพิ่มความเสถียรและช่วยส่งออกจากนิวเคลียส"},
+  {q:"อนุภาคใดเป็นองค์ประกอบหลักของ spliceosome ที่ทำหน้าที่ตัดต่อ intron?",
+   options:["Signal recognition particle","snRNP (small nuclear ribonucleoprotein)","Exosome","Proteasome"],
+   correct:1,
+   explain:"Spliceosome ประกอบด้วย snRNP หลายชนิด (U1 U2 U4 U5 U6) ที่จดจำตำแหน่งรอยต่อ exon-intron แล้วตัดต่อ intron ออกจาก pre-mRNA"},
+  {q:"เมื่อ intron ถูกตัดออกโดย spliceosome จะเกิดโครงสร้างกลางที่เรียกว่าอะไร?",
+   options:["Lariat (โครงสร้างห่วง)","Hairpin loop","Stem-loop","Cruciform"],
+   correct:0,
+   explain:"ปลาย 5' ของ intron จะเชื่อมกับเบส A ภายในลำดับ branch point เกิดเป็นโครงสร้างวงคล้ายบ่วง เรียกว่า lariat"},
+  {q:"Exon Junction Complex (EJC) ถูกวางไว้ที่ตำแหน่งใดหลัง splicing และมีบทบาทอย่างไร?",
+   options:["วางที่ 5' cap ช่วยกระตุ้นการถอดรหัส","วางที่ poly-A tail ช่วยความเสถียรของ mRNA","วางที่ intron ที่เหลือค้าง ช่วยตัดซ้ำ","วางที่บริเวณรอยต่อ exon-exon ช่วยในการส่งออกและเฝ้าระวัง mRNA (เช่น NMD)"],
+   correct:3,
+   explain:"EJC ถูกวางไว้ใกล้รอยต่อ exon-exon หลัง splicing มีบทบาทช่วยส่งออก mRNA และเป็นตัวช่วยระบบเฝ้าระวังอย่าง NMD"},
+  {q:"ในโพรคาริโอต mRNA มักเป็นแบบ polycistronic หมายความว่าอย่างไร?",
+   options:["mRNA มี intron หลายตำแหน่ง","mRNA หนึ่งสายเข้ารหัสโปรตีนได้มากกว่าหนึ่งชนิด","mRNA ถูกแปลรหัสโดยไรโบโซมหลายตัวพร้อมกันเสมอ","mRNA มีเฉพาะ start codon เดียวทั้งสาย"],
+   correct:1,
+   explain:"mRNA แบบ polycistronic มีหลาย open reading frame แต่ละอันมี Shine-Dalgarno และ start codon ของตัวเอง ทำให้เข้ารหัสโปรตีนได้หลายชนิดในสายเดียว มักพบในโพรคาริโอต"},
+  {q:"กรดอะมิโนตัวแรกที่ถูกนำเข้าสู่ตำแหน่ง P site ในการเริ่มแปลรหัสของแบคทีเรียคือชนิดใด?",
+   options:["Methionine ธรรมดา","Glycine","N-formylmethionine (fMet)","Alanine"],
+   correct:2,
+   explain:"ในแบคทีเรีย initiator tRNA (tRNA-fMet) นำกรดอะมิโน N-formylmethionine เข้าสู่ P site เป็นตัวแรกเสมอ ส่วนในยูคาริโอตใช้ Methionine ธรรมดา"}
+];
+
+const letters = ["ก","ข","ค","ง"];
+let current = 0;
+let score = 0;
+let answered = new Array(questions.length).fill(false);
+
+const coverArea = document.getElementById('cover-area');
+const quizArea = document.getElementById('quiz-area');
+const resultArea = document.getElementById('result-area');
+
+document.getElementById('start-btn').addEventListener('click', () => {
+  coverArea.style.display = 'none';
+  quizArea.style.display = 'block';
+  renderQuestion();
+});
+
+function renderQuestion(){
+  const item = questions[current];
+  document.getElementById('progress-label').textContent =
+    'ข้อที่ ' + String(current+1).padStart(2,'0') + ' / ' + questions.length;
+  document.getElementById('progress-fill').style.width =
+    Math.round(((current+1)/questions.length)*100) + '%';
+  document.getElementById('score-num').textContent = score;
+  document.getElementById('question-text').textContent = item.q;
+
+  const optsEl = document.getElementById('opts');
+  optsEl.innerHTML = '';
+  item.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.innerHTML = '<span class="opt-badge mono">' + letters[i] + '</span><span>' + opt + '</span>';
+    btn.addEventListener('click', () => handleAnswer(i, btn));
+    optsEl.appendChild(btn);
+  });
+
+  const fb = document.getElementById('feedback');
+  fb.style.display = 'none';
+  fb.className = 'feedback';
+  document.getElementById('next-row').style.display = 'none';
+}
+
+function handleAnswer(idx, clickedBtn){
+  if (answered[current]) return;
+  answered[current] = true;
+  const item = questions[current];
+  const isCorrect = idx === item.correct;
+  if (isCorrect) score++;
+
+  const optBtns = document.querySelectorAll('#opts .opt-btn');
+  optBtns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === item.correct) btn.classList.add('correct');
+    else if (i === idx) btn.classList.add('wrong');
+  });
+
+  const fb = document.getElementById('feedback');
+  fb.style.display = 'block';
+  fb.classList.add(isCorrect ? 'correct' : 'wrong');
+  fb.innerHTML = '<b>' + (isCorrect ? 'ถูกต้อง' : 'ยังไม่ถูก') + '</b> — ' + item.explain;
+
+  document.getElementById('score-num').textContent = score;
+  document.getElementById('next-row').style.display = 'block';
+
+  const nextBtn = document.getElementById('next-btn');
+  const isLast = current === questions.length - 1;
+  nextBtn.childNodes[0].textContent = isLast ? 'ดูผลคะแนน ' : 'ข้อถัดไป ';
+  nextBtn.onclick = () => {
+    if (!isLast){ current++; renderQuestion(); }
+    else { showResult(); }
+  };
+}
+
+function showResult(){
+  quizArea.style.display = 'none';
+  resultArea.style.display = 'block';
+  const percent = Math.round((score/questions.length)*100);
+  let msg;
+  if (percent >= 90) msg = 'ยอดเยี่ยม เข้าใจเรื่องนี้ลึกมาก';
+  else if (percent >= 70) msg = 'ดีมาก พื้นฐานแน่น เหลืออีกนิดเดียว';
+  else if (percent >= 50) msg = 'พอใช้ได้ ลองทบทวนจุดที่พลาดอีกครั้ง';
+  else msg = 'ควรทบทวนเนื้อหาเพิ่มเติม โดยเฉพาะกลไกระดับโมเลกุล';
+
+  document.getElementById('result-score').textContent = score + ' / ' + questions.length;
+  document.getElementById('result-msg').textContent = msg;
+}
+
+document.getElementById('retry-btn').addEventListener('click', () => {
+  current = 0; score = 0; answered = new Array(questions.length).fill(false);
+  resultArea.style.display = 'none';
+  quizArea.style.display = 'block';
+  renderQuestion();
+});
+
+document.getElementById('copy-btn').addEventListener('click', async () => {
+  const note = document.getElementById('copy-note');
+  try{
+    await navigator.clipboard.writeText(window.location.href);
+    note.textContent = 'คัดลอกลิงก์แล้ว ส่งต่อให้เพื่อนได้เลย';
+  }catch(e){
+    note.textContent = 'คัดลอกอัตโนมัติไม่ได้ ลองคัดลอกลิงก์จากแถบที่อยู่ด้านบนแทน';
+  }
+});
+</script>
+</body>
+</html>
